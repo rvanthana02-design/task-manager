@@ -1,176 +1,90 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Task Manager Vanthana R</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Premium Task Manager Pro</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;font-family:'Poppins',sans-serif}
 
-<style>
-body {
-  font-family: Arial, sans-serif;
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-  margin: 0;
-}
+    body{
+      min-height:100vh;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      background:linear-gradient(135deg,#667eea,#764ba2);
+      transition:0.3s;
+    }
 
-.container {
-  background: rgba(255,255,255,0.1);
-  backdrop-filter: blur(10px);
-  padding: 20px;
-  border-radius: 15px;
-  width: 350px;
-  color: white;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-}
+    .app{
+      width:380px;
+      background:rgba(255,255,255,0.12);
+      backdrop-filter:blur(15px);
+      border-radius:20px;
+      padding:20px;
+      color:#fff;
+      box-shadow:0 10px 40px rgba(0,0,0,0.4);
+    }
 
-h2 {
-  text-align: center;
-}
+    h2{text-align:center;margin-bottom:15px}
 
-input {
-  width: 70%;
-  padding: 10px;
-  border: none;
-  border-radius: 8px;
-}
+    .input-box{display:flex;gap:8px;margin-bottom:10px}
 
-button {
-  padding: 10px;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-}
+    input, select{
+      padding:10px;
+      border:none;
+      border-radius:10px;
+      outline:none;
+      flex:1;
+    }
 
-.add-btn {
-  background: #00c9a7;
-  color: white;
-  margin-top:8px;
-}
+    button{
+      padding:10px;
+      border:none;
+      border-radius:10px;
+      cursor:pointer;
+      background:#ff7eb3;
+      color:#fff;
+      transition:0.3s;
+    }
 
-.task {
-  display: flex;
-  justify-content: space-between;
-  background: rgba(255,255,255,0.2);
-  padding:8px;
-  margin-top: 10px;
-  border-radius: 8px;
-}
+    button:hover{background:#ff4f91}
 
-.completed {
-  text-decoration: line-through;
-  opacity: 0.6;
-}
+    ul{list-style:none;max-height:260px;overflow-y:auto}
 
-.actions button {
-  margin-left: 5px;
-}
+    li{
+      background:rgba(255,255,255,0.2);
+      margin-bottom:10px;
+      padding:10px;
+      border-radius:12px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      cursor:grab;
+      animation:fadeIn 0.3s ease;
+    }
 
-.filter {
-  margin-top: 10px;
-  display: flex;
-  justify-content: space-between;
-}
-</style>
+    li.completed{opacity:0.5;text-decoration:line-through}
 
+    .task-info{display:flex;flex-direction:column}
+
+    .due{font-size:12px;opacity:0.8}
+
+    .actions button{background:transparent;border:1px solid #fff;margin-left:5px}
+
+    .progress{text-align:center;margin-top:10px;font-size:14px}
+
+    .theme-toggle{text-align:center;margin-top:10px;cursor:pointer}
+
+    @keyframes fadeIn{
+      from{opacity:0;transform:translateY(10px)}
+      to{opacity:1;transform:translateY(0)}
+    }
+
+    .dark{
+      background:#1e1e2f;
+    }
+  </style>
 </head>
-<body>
-
-<div class="container">
-  <h2>Task Manager Vanthana R</h2>
-
-  <input type="text" id="taskInput" placeholder="Enter task">
-  <button class="add-btn" onclick="addTask()">Add Task</button>
-
-  <div class="filter">
-    <button onclick="setFilter('all')">All Task</button>
-    <button onclick="setFilter('completed')">Completed Task</button>
-    <button onclick="setFilter('pending')">Pending Task</button>
-  </div>
-
-  <div id="taskList"></div>
-</div>
-
-<script>
-let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
-let filter = "all";
-
-function saveTasks() {
-  localStorage.setItem("tasks", JSON.stringify(tasks));
-}
-
-function addTask() {
-  const input = document.getElementById("taskInput");
-  if (input.value.trim() === "") return;
-
-  tasks.push({
-    text: input.value,
-    completed: false
-  });
-
-  input.value = "";
-  saveTasks();
-  renderTasks();
-}
-
-function deleteTask(index) {
-  tasks.splice(index, 1);
-  saveTasks();
-  renderTasks();
-}
-
-function toggleTask(index) {
-  tasks[index].completed = !tasks[index].completed;
-  saveTasks();
-  renderTasks();
-}
-
-function editTask(index) {
-  let newText = prompt("Edit task:", tasks[index].text);
-  if (newText) {
-    tasks[index].text = newText;
-    saveTasks();
-    renderTasks();
-  }
-}
-
-function setFilter(f) {
-  filter = f;
-  renderTasks();
-}
-
-function renderTasks() {
-  const list = document.getElementById("taskList");
-  list.innerHTML = "";
-
-  tasks.forEach((task, index) => {
-
-    if (filter === "completed" && !task.completed) return;
-    if (filter === "pending" && task.completed) return;
-
-    const div = document.createElement("div");
-    div.className = "task";
-
-    div.innerHTML = `
-      <span class="${task.completed ? 'completed' : ''}">
-        ${task.text}
-      </span>
-
-      <div class="actions">
-        <button onclick="toggleTask(${index})">✔</button>
-        <button onclick="editTask(${index})">✏</button>
-        <button onclick="deleteTask(${index})">❌</button>
-      </div>
-    `;
-
-    list.appendChild(div);
-  });
-}
-
-renderTasks();
-</script>
-
-</body>
-</html>
+<b
