@@ -3,114 +3,144 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simple Task Manager</title>
+    <title>Pro Task Manager</title>
     <style>
-        /* CSS - Design Section */
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f9;
-            display: flex;
-            justify-content: center;
-            padding: 20px;
+        :root {
+            --primary: #4a90e2;
+            --success: #2ecc71;
+            --danger: #e74c3c;
+            --bg: #f8f9fa;
         }
-        .container {
-            background: white;
-            width: 100%;
-            max-width: 400px;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-        }
-        h2 { text-align: center; color: #333; }
-        .input-group {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-        input {
-            flex: 1;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-        }
-        button#add-btn {
-            padding: 10px 15px;
-            background-color: #28a745;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); padding: 20px; display: flex; justify-content: center; }
+        .container { background: white; width: 100%; max-width: 500px; padding: 25px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #333; margin-bottom: 20px; }
+        
+        .input-section { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+        .input-row { display: flex; gap: 10px; }
+        input { padding: 12px; border: 1px solid #ddd; border-radius: 6px; flex: 1; }
+        
+        .filters { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; }
+        .filter-btn { padding: 5px 15px; border: none; border-radius: 20px; cursor: pointer; background: #eee; transition: 0.3s; }
+        .filter-btn.active { background: var(--primary); color: white; }
+
         ul { list-style: none; padding: 0; }
-        li {
-            background: #fff;
-            border-bottom: 1px solid #eee;
-            padding: 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        li { 
+            background: #fff; border: 1px solid #eee; padding: 12px; margin-bottom: 10px;
+            border-radius: 8px; display: flex; justify-content: space-between; align-items: center;
         }
-        .completed {
-            text-decoration: line-through;
-            color: gray;
-        }
-        .delete-btn {
-            background: #ff4d4d;
-            color: white;
-            border: none;
-            padding: 5px 10px;
-            border-radius: 3px;
-            cursor: pointer;
-        }
+        .task-info { display: flex; flex-direction: column; flex: 1; cursor: pointer; }
+        .task-date { font-size: 11px; color: #888; margin-top: 4px; }
+        .completed .text { text-decoration: line-through; color: #bbb; }
+        
+        .actions { display: flex; gap: 5px; }
+        .btn { border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; color: white; font-size: 12px; }
+        .add-btn { background: var(--primary); width: 100%; padding: 12px; font-weight: bold; }
+        .edit-btn { background: #f39c12; }
+        .del-btn { background: var(--danger); }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>My Tasks</h2>
+    <h2>Task Manager Pro</h2>
     
-    <div class="input-group">
-        <input type="text" id="taskInput" placeholder="Enna vela seiyanum?">
-        <button id="add-btn" onclick="addTask()">Add</button>
+    <div class="input-section">
+        <input type="text" id="taskInput" placeholder="What needs to be done?">
+        <div class="input-row">
+            <input type="date" id="dateInput">
+            <button class="btn add-btn" id="saveBtn" onclick="addOrUpdateTask()">Add Task</button>
+        </div>
+    </div>
+
+    <div class="filters">
+        <button class="filter-btn active" onclick="filterTasks('all', this)">All</button>
+        <button class="filter-btn" onclick="filterTasks('pending', this)">Pending</button>
+        <button class="filter-btn" onclick="filterTasks('completed', this)">Completed</button>
     </div>
 
     <ul id="taskList"></ul>
 </div>
 
 <script>
-    /* JavaScript - Logic Section */
+    let tasks = JSON.parse(localStorage.getItem("myTasks")) || [];
+    let editId = null;
+    let currentFilter = 'all';
 
-    // 1. Task-ah add panna
-    function addTask() {
-        let input = document.getElementById("taskInput");
-        let taskValue = input.value;
+    function saveToLocal() {
+        localStorage.setItem("myTasks", JSON.stringify(tasks));
+        render();
+    }
 
-        if (taskValue === "") {
-            alert("Ethachum type pannunga!");
-            return;
+    function addOrUpdateTask() {
+        const title = document.getElementById("taskInput").value;
+        const date = document.getElementById("dateInput").value;
+
+        if (!title) return alert("Please enter a task!");
+
+        if (editId !== null) {
+            tasks = tasks.map(t => t.id === editId ? {...t, title, date} : t);
+            editId = null;
+            document.getElementById("saveBtn").innerText = "Add Task";
+        } else {
+            tasks.push({ id: Date.now(), title, date, completed: false });
         }
 
-        let ul = document.getElementById("taskList");
-        let li = document.createElement("li");
-
-        li.innerHTML = `
-            <span onclick="toggleComplete(this)">${taskValue}</span>
-            <button class="delete-btn" onclick="deleteTask(this)">Delete</button>
-        `;
-
-        ul.appendChild(li);
-        input.value = ""; // Input-ah clear panna
+        document.getElementById("taskInput").value = "";
+        document.getElementById("dateInput").value = "";
+        saveToLocal();
     }
 
-    // 2. Task-ah complete-nu mark panna
-    function toggleComplete(element) {
-        element.classList.toggle("completed");
+    function deleteTask(id) {
+        tasks = tasks.filter(t => t.id !== id);
+        saveToLocal();
     }
 
-    // 3. Task-ah delete panna
-    function deleteTask(element) {
-        element.parentElement.remove();
+    function toggleTask(id) {
+        tasks = tasks.map(t => t.id === id ? {...t, completed: !t.completed} : t);
+        saveToLocal();
     }
+
+    function editTask(id) {
+        const task = tasks.find(t => t.id === id);
+        document.getElementById("taskInput").value = task.title;
+        document.getElementById("dateInput").value = task.date;
+        document.getElementById("saveBtn").innerText = "Update Task";
+        editId = id;
+    }
+
+    function filterTasks(type, btn) {
+        currentFilter = type;
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        render();
+    }
+
+    function render() {
+        const list = document.getElementById("taskList");
+        list.innerHTML = "";
+
+        let filtered = tasks;
+        if (currentFilter === 'pending') filtered = tasks.filter(t => !t.completed);
+        if (currentFilter === 'completed') filtered = tasks.filter(t => t.completed);
+
+        filtered.forEach(t => {
+            const li = document.createElement("li");
+            li.className = t.completed ? "completed" : "";
+            li.innerHTML = `
+                <div class="task-info" onclick="toggleTask(${t.id})">
+                    <span class="text">${t.title}</span>
+                    <span class="task-date">${t.date ? '📅 ' + t.date : 'No date'}</span>
+                </div>
+                <div class="actions">
+                    <button class="btn edit-btn" onclick="editTask(${t.id})">Edit</button>
+                    <button class="btn del-btn" onclick="deleteTask(${t.id})">Delete</button>
+                </div>
+            `;
+            list.appendChild(li);
+        });
+    }
+
+    render(); // Initial load
 </script>
 
 </body>
