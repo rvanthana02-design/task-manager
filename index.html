@@ -1,135 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Task Manager PRO</title>
+
+<link rel="manifest" href="manifest.json">
+
+<style>
+body {
+  font-family: Arial;
+  background: #0f172a;
+  color: white;
+  text-align: center;
+}
+input, button {
+  padding: 10px;
+  margin: 5px;
+}
+.task {
+  background: #1e293b;
+  margin: 10px;
+  padding: 10px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>🔥 Task Manager PRO</h1>
+
+<input id="taskInput" placeholder="Task">
+<input type="date" id="date">
+<input type="time" id="time">
+<button onclick="addTask()">Add</button>
+
+<div id="tasks"></div>
+
 <script>
 let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
-let editIndex = -1;
+
+// Register Service Worker
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw.js");
+}
+
+// Notification permission
+Notification.requestPermission();
 
 function save() {
   localStorage.setItem("tasks", JSON.stringify(tasks));
 }
 
 function addTask() {
-  const text = taskInput.value;
-  if (!text) return;
-
   tasks.push({
-    text,
-    done: false,
-    priority: priority.value,
-    category: category.value,
-    date: dueDate.value
+    text: taskInput.value,
+    date: date.value,
+    time: time.value,
+    notified: false
   });
-
-  taskInput.value = "";
   save();
-  renderTasks();
+  render();
 }
 
-function renderTasks() {
-  const list = document.getElementById("taskList");
-  list.innerHTML = "";
+function render() {
+  tasksDiv.innerHTML = "";
+  tasks.forEach(t => {
+    tasksDiv.innerHTML += `
+      <div class="task">
+        <b>${t.text}</b><br>
+        ${t.date} ${t.time}
+      </div>
+    `;
+  });
+}
 
-  const searchVal = search.value.toLowerCase();
-  const filterVal = filter.value;
+setInterval(() => {
+  const now = new Date();
 
-  let filtered = tasks.filter(t =>
-    t.text.toLowerCase().includes(searchVal)
-  );
+  tasks.forEach((t, i) => {
+    if (!t.notified && t.date && t.time) {
+      const taskTime = new Date(`${t.date}T${t.time}`);
 
-  if (filterVal === "done")
-    filtered = filtered.filter(t => t.done);
-  if (filterVal === "pending")
-    filtered = filtered.filter(t => !t.done);
-
-  filtered.forEach((t, i) => {
-    const div = document.createElement("div");
-    div.className = "task " + (t.done ? "done" : "");
-
-    if (editIndex === i) {
-      div.innerHTML = `
-        <input id="editText" value="${t.text}">
-        <input type="date" id="editDate" value="${t.date}">
-        
-        <select id="editPriority">
-          <option ${t.priority==="low"?"selected":""}>low</option>
-          <option ${t.priority==="medium"?"selected":""}>medium</option>
-          <option ${t.priority==="high"?"selected":""}>high</option>
-        </select>
-
-        <select id="editCategory">
-          <option ${t.category==="Work"?"selected":""}>Work</option>
-          <option ${t.category==="Personal"?"selected":""}>Personal</option>
-          <option ${t.category==="Study"?"selected":""}>Study</option>
-        </select>
-
-        <button onclick="saveEdit(${i})">💾</button>
-        <button onclick="cancelEdit()">❌</button>
-      `;
-    } else {
-      div.innerHTML = `
-        <div>
-          <b>${t.text}</b><br>
-          <small>${t.date || ""} | ${t.category}</small><br>
-          <span class="priority-${t.priority}">
-            ${t.priority.toUpperCase()}
-          </span>
-        </div>
-
-        <div>
-          <button onclick="toggleTask(${i})">✔</button>
-          <button onclick="startEdit(${i})">✏️</button>
-          <button onclick="deleteTask(${i})">🗑️</button>
-        </div>
-      `;
+      if (now >= taskTime) {
+        notify(t.text);
+        tasks[i].notified = true;
+        save();
+      }
     }
-
-    list.appendChild(div);
   });
+}, 1000);
 
-  updateProgress();
+function notify(msg) {
+  if (Notification.permission === "granted") {
+    navigator.serviceWorker.getRegistration().then(reg => {
+      reg.showNotification("⏰ Reminder", {
+        body: msg,
+        icon: "https://cdn-icons-png.flaticon.com/512/1827/1827392.png"
+      });
+    });
+  }
 }
 
-function startEdit(i) {
-  editIndex = i;
-  renderTasks();
-}
-
-function cancelEdit() {
-  editIndex = -1;
-  renderTasks();
-}
-
-function saveEdit(i) {
-  tasks[i].text = document.getElementById("editText").value;
-  tasks[i].date = document.getElementById("editDate").value;
-  tasks[i].priority = document.getElementById("editPriority").value;
-  tasks[i].category = document.getElementById("editCategory").value;
-
-  editIndex = -1;
-  save();
-  renderTasks();
-}
-
-function toggleTask(i) {
-  tasks[i].done = !tasks[i].done;
-  save();
-  renderTasks();
-}
-
-function deleteTask(i) {
-  tasks.splice(i, 1);
-  save();
-  renderTasks();
-}
-
-function toggleMode() {
-  document.body.classList.toggle("light");
-}
-
-function updateProgress() {
-  const done = tasks.filter(t => t.done).length;
-  const total = tasks.length;
-  const percent = total ? (done / total) * 100 : 0;
-  document.getElementById("progressBar").style.width = percent + "%";
-}
-
-renderTasks();
+render();
 </script>
+
+</body>
+</html>
